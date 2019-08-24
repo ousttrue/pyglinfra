@@ -48,22 +48,50 @@ class VBO:
     def unbind(self) -> None:
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-    def set_data(self, component_count: int,
-                 values: List[Tuple[float, float]]) -> None:
+    def set_vertex_attribute(self, component_count: int,
+                             values: List[Tuple[float, float]]) -> None:
+        ''' float2, 3, 4'''
         self.component_count = 2
-        self.vertex_count = int(len(values) / self.component_count)
+        self.vertex_count = len(values) // self.component_count
         self.bind()
         bytelength = ctypes.sizeof(ctypes.c_float) * len(values)
         typedarray = (ctypes.c_float * len(values))(*values)
         glBufferData(GL_ARRAY_BUFFER, bytelength, typedarray, GL_STATIC_DRAW)
 
-    def draw(self) -> None:
+    def set_slot(self, slot: int) -> None:
         self.bind()
-        slot = 0
         glEnableVertexAttribArray(slot)
         glVertexAttribPointer(slot, self.component_count, GL_FLOAT, GL_FALSE,
                               0, None)
+    def draw(self) -> None:
         glDrawArrays(GL_TRIANGLES, 0, self.vertex_count)
+
+
+class IBO:
+    def __init__(self) -> None:
+        self.vbo = glGenBuffers(1)
+        self.index_count = 0
+
+    def __del__(self) -> None:
+        glDeleteBuffers(1, [self.vbo])
+
+    def bind(self) -> None:
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.vbo)
+
+    def unbind(self) -> None:
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+
+    def set_indices(self, values: List[int]) -> None:
+        ''' uint '''
+        self.component_count = 1
+        self.vertex_count = len(values)
+        self.bind()
+        bytelength = ctypes.sizeof(ctypes.c_uint) * len(values)
+        typedarray = (ctypes.c_uint * len(values))(*values)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, bytelength, typedarray, GL_STATIC_DRAW)
+
+    def draw(self) -> None:
+        glDrawElements(GL_TRIANGLES, self.vertex_count, GL_UNSIGNED_INT, None)
 
 
 def load_shader(src: str, shader_type: int) -> int:
@@ -101,12 +129,6 @@ class Shader:
         if error != GL_TRUE:
             info = glGetShaderInfoLog(self.program)
             raise Exception(info)
-        try:
-            self.use()
-        except OpenGL.error.GLError as ex:
-            if ex.description:
-                error = ex.description.decode('utf8')
-                print(error)
 
     def use(self):
         glUseProgram(self.program)
@@ -118,15 +140,26 @@ class Shader:
 class Model:
     def __init__(self) -> None:
         self.positions = VBO()
+        self.indices: IBO = None
         self.shader = Shader()
 
     def set_vertices(self, component_count: int,
                      vertices: List[float]) -> None:
-        self.positions.set_data(component_count, vertices)
+        self.positions.set_vertex_attribute(component_count, vertices)
+
+    def set_indices(self, indices: List[int]) -> None:
+        self.indices = IBO()
+        self.indices.set_indices(indices)
 
     def draw(self) -> None:
         self.shader.use()
-        self.positions.draw()
+        if self.indices:
+            self.positions.set_slot(0)
+            self.indices.bind()
+            self.indices.draw()
+        else:
+            self.positions.set_slot(0)
+            self.positions.draw()
 
 
 def create_triangle():
@@ -138,6 +171,7 @@ def create_triangle():
     m = Model()
     m.shader.compile(VS, FS)
     m.set_vertices(2, VERTICES)
+    m.set_indices([0, 1, 2])
 
     return m
 
