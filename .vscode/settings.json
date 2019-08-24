@@ -1,10 +1,13 @@
 {
     "cSpell.words": [
         "Programiv",
+        "TEXCOORD",
         "ctypes",
         "glglue",
         "globjects",
         "gltftypes",
+        "struct",
+        "uint",
         "unuse"
     ]
 }

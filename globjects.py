@@ -1,16 +1,7 @@
 from OpenGL.GL import *  # pylint: disable=W0614, W0622, W0401
 from OpenGL.GLU import *  # pylint: disable=W0614, W0622, W0401
-
-
-class TriangleLegacy:
-    def draw(self) -> None:
-        glBegin(GL_TRIANGLES)
-        glVertex(-1.0, -1.0)
-        glVertex(1.0, -1.0)
-        glVertex(0.0, 1.0)
-        glEnd()
-
-
+from typing import Dict
+import scenedescription
 import ctypes
 from typing import List, Tuple
 
@@ -144,9 +135,29 @@ def create_triangle():
     print(glGetString(GL_SHADING_LANGUAGE_VERSION))
     print(glGetString(GL_RENDERER))
 
-    #m = TriangleLegacy()
     m = Model()
     m.shader.compile(VS, FS)
     m.set_vertices(2, VERTICES)
 
     return m
+
+
+class Renderer:
+    def __init__(self):
+        self.drawable_map: Dict[scenedescription.Mesh, Model] = {}
+
+    def get_drawable(self, mesh: scenedescription.Mesh) -> Model:
+        d = self.drawable_map.get(mesh)
+        if not d:
+            d = create_triangle()
+            # d = Model()
+            # d.shader.compile(VS, FS)
+            # d.set_vertices(3, mesh.positions)
+            self.drawable_map[mesh] = d
+        return d
+
+    def draw(self, scene: scenedescription.Scene) -> None:
+        for g in scene.mesh_groups:
+            for m in g.meshes:
+                d = self.get_drawable(m)
+                d.draw()

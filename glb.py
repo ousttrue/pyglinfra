@@ -8,12 +8,12 @@ except:
 
 
 class Reader:
-    def __init__(self, data: bytes)->None:
+    def __init__(self, data: bytes) -> None:
         self.data = data
         self.pos = 0
 
-    def read(self, size)->bytes:
-        result = self.data[self.pos: self.pos + size]
+    def read(self, size) -> bytes:
+        result = self.data[self.pos:self.pos + size]
         self.pos += size
         return result
 
@@ -23,7 +23,7 @@ class Reader:
         return result
 
 
-def parse_glb(data: bytes)->Tuple[gltftypes.glTF, bytes]:
+def parse_glb(data: bytes) -> Tuple[gltftypes.glTF, bytes]:
     reader = Reader(data)
     magic = reader.read(4)
     if magic != b'glTF':

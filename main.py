@@ -5,8 +5,7 @@ from OpenGL.GL import (glViewport, glClearColor, GL_COLOR_BUFFER_BIT,
 
 import glglue.wgl
 
-import glb
-import gltftypes
+import gltf
 import scenedescription
 import globjects
 
@@ -14,7 +13,7 @@ import globjects
 class Controller:
     def __init__(self) -> None:
         self.scene = scenedescription.Scene()
-        self.model: globjects.Model = None
+        self.renderer = globjects.Renderer()
 
     def onResize(self, w: int, h: int) -> None:
         ''' when OpenGL window is resized. '''
@@ -62,18 +61,15 @@ class Controller:
 
     def draw(self) -> None:
         ''' each frame'''
-        if not self.model:
-            self.model = globjects.create_triangle()
-
         glClearColor(0.0, 0.0, 1.0, 0.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        self.model.draw()
+        self.renderer.draw(self.scene)
 
         glFlush()
 
-    def load(self, gltf: gltftypes.glTF, bin: bytes):
-        self.scene.load(gltf, bin)
+    def load(self, data: gltf.GltfManipulator):
+        self.scene.load(data)
 
 
 def main() -> None:
@@ -86,10 +82,10 @@ def main() -> None:
     if not src.exists():
         raise Exception(f'{src} is not exists')
 
-    parsed = glb.parse_glb(src.read_bytes())
+    data = gltf.load(src.read_bytes())
 
     controller = Controller()
-    controller.load(*parsed)
+    controller.load(data)
 
     glglue.wgl.mainloop(controller)
 
