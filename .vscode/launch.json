@@ -12,6 +12,7 @@
             "args": [
                 "--src",
                 "${env:GLTF_SAMPLE_MODELS}/2.0/Avocado/glTF-Binary/Avocado.glb",
+                // "${env:GLTF_SAMPLE_MODELS}/2.0/Box/glTF-Binary/Box.glb"
             ],
             "console": "integratedTerminal"
         }

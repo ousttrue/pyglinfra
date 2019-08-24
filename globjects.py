@@ -48,21 +48,20 @@ class VBO:
     def unbind(self) -> None:
         glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-    def set_vertex_attribute(self, component_count: int,
-                             values: List[Tuple[float, float]]) -> None:
+    def set_vertex_attribute(self, component_count: int, data: bytes) -> None:
         ''' float2, 3, 4'''
-        self.component_count = 2
-        self.vertex_count = len(values) // self.component_count
+        self.component_count = component_count
+        stride = 4 * self.component_count
+        self.vertex_count = len(data) // stride
         self.bind()
-        bytelength = ctypes.sizeof(ctypes.c_float) * len(values)
-        typedarray = (ctypes.c_float * len(values))(*values)
-        glBufferData(GL_ARRAY_BUFFER, bytelength, typedarray, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, len(data), data, GL_STATIC_DRAW)
 
     def set_slot(self, slot: int) -> None:
         self.bind()
         glEnableVertexAttribArray(slot)
         glVertexAttribPointer(slot, self.component_count, GL_FLOAT, GL_FALSE,
                               0, None)
+
     def draw(self) -> None:
         glDrawArrays(GL_TRIANGLES, 0, self.vertex_count)
 
@@ -71,6 +70,7 @@ class IBO:
     def __init__(self) -> None:
         self.vbo = glGenBuffers(1)
         self.index_count = 0
+        self.index_type = 0
 
     def __del__(self) -> None:
         glDeleteBuffers(1, [self.vbo])
@@ -81,17 +81,20 @@ class IBO:
     def unbind(self) -> None:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
 
-    def set_indices(self, values: List[int]) -> None:
-        ''' uint '''
-        self.component_count = 1
-        self.vertex_count = len(values)
+    def set_indices(self, data: bytes, index_count: int) -> None:
+        self.index_count = index_count
         self.bind()
-        bytelength = ctypes.sizeof(ctypes.c_uint) * len(values)
-        typedarray = (ctypes.c_uint * len(values))(*values)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, bytelength, typedarray, GL_STATIC_DRAW)
+        stride = len(data) // index_count
+        if stride == 1:
+            raise Exception("not implemented")
+        elif stride == 2:
+            self.index_type = GL_UNSIGNED_SHORT
+        elif stride ==4:
+            self.index_type = GL_UNSIGNED_INT
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, len(data), data, GL_STATIC_DRAW)
 
     def draw(self) -> None:
-        glDrawElements(GL_TRIANGLES, self.vertex_count, GL_UNSIGNED_INT, None)
+        glDrawElements(GL_TRIANGLES, self.index_count, self.index_type, None)
 
 
 def load_shader(src: str, shader_type: int) -> int:
@@ -143,13 +146,12 @@ class Model:
         self.indices: IBO = None
         self.shader = Shader()
 
-    def set_vertices(self, component_count: int,
-                     vertices: List[float]) -> None:
-        self.positions.set_vertex_attribute(component_count, vertices)
+    def set_vertices(self, component_count: int, data: bytes) -> None:
+        self.positions.set_vertex_attribute(component_count, data)
 
-    def set_indices(self, indices: List[int]) -> None:
+    def set_indices(self, data: bytes, index_count: int) -> None:
         self.indices = IBO()
-        self.indices.set_indices(indices)
+        self.indices.set_indices(data, index_count)
 
     def draw(self) -> None:
         self.shader.use()
@@ -183,10 +185,11 @@ class Renderer:
     def get_drawable(self, mesh: scenedescription.Mesh) -> Model:
         d = self.drawable_map.get(mesh)
         if not d:
-            d = create_triangle()
-            # d = Model()
-            # d.shader.compile(VS, FS)
-            # d.set_vertices(3, mesh.positions)
+            # d = create_triangle()
+            d = Model()
+            d.shader.compile(VS, FS)
+            d.set_vertices(3, mesh.positions)
+            d.set_indices(mesh.indices, mesh.index_count)
             self.drawable_map[mesh] = d
         return d
 

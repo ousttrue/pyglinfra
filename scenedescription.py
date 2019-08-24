@@ -22,6 +22,8 @@ class SubMesh:
 
 class Mesh:
     def __init__(self):
+        self.indices: bytes = b''
+        self.index_count = 0
         self.positions: bytes = b''
         self.texcoords: bytes = b''
         self.normals: bytes = b''
@@ -61,6 +63,8 @@ class Scene:
             group = MeshGroup(m.name)
             for p in m.primitives:
                 mesh = Mesh()
+                mesh.index_count = data.gltf.accessors[p.indices].count
+                mesh.indices = data.get_bytes_from_accessor(p.indices)
                 for k, v in p.attributes.items():
                     if k == "POSITION":
                         mesh.positions = data.get_bytes_from_accessor(v)
