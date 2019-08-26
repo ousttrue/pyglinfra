@@ -16,10 +16,10 @@ VERTICES = (
 
 VS = '''
 #version 330
-in vec2 aPosition;
+in vec3 aPosition;
 void main ()
 {
-    gl_Position = vec4(aPosition, 0.5, 1);
+    gl_Position = vec4(aPosition, 1);
 }
 '''
 
@@ -167,7 +167,7 @@ class Model:
 def create_triangle():
     m = Model()
     m.shader.compile(VS, FS)
-    m.set_vertices(2, VERTICES)
+    m.set_vertices(3, VERTICES)
     m.set_indices([0, 1, 2])
 
     return m
