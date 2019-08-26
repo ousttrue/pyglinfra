@@ -165,11 +165,6 @@ class Model:
 
 
 def create_triangle():
-    print(glGetString(GL_VENDOR))
-    print(glGetString(GL_VERSION))
-    print(glGetString(GL_SHADING_LANGUAGE_VERSION))
-    print(glGetString(GL_RENDERER))
-
     m = Model()
     m.shader.compile(VS, FS)
     m.set_vertices(2, VERTICES)
@@ -185,6 +180,10 @@ class Renderer:
     def get_drawable(self, mesh: scenedescription.Mesh) -> Model:
         d = self.drawable_map.get(mesh)
         if not d:
+            print(glGetString(GL_VENDOR))
+            print(glGetString(GL_VERSION))
+            print(glGetString(GL_SHADING_LANGUAGE_VERSION))
+            print(glGetString(GL_RENDERER))
             # d = create_triangle()
             d = Model()
             d.shader.compile(VS, FS)
