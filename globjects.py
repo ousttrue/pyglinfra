@@ -36,18 +36,21 @@ void main()
 
 
 class UniformMat4:
-    def __init__(self, name: str) -> None:
+    def __init__(self, program: int, name: str) -> None:
+        self.program = program
         self.name = name
-        self.location = 0
+        self.location = -1
 
     def set(self, value: ctypesmath.Mat4) -> None:
+        if self.location < 0:
+            self.location = glGetUniformLocation(self.program, self.name)
         glUniformMatrix4fv(self.location, 1, GL_FALSE, value.to_array())
 
 
 class Shader:
     def __init__(self) -> None:
         self.program = glCreateProgram()
-        self.matrix = UniformMat4('m')
+        self.matrix = UniformMat4(self.program, 'm')
 
     def __del__(self) -> None:
         glDeleteProgram(self.program)
