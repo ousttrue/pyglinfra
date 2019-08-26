@@ -4,6 +4,7 @@ from typing import Dict
 import scenedescription
 import ctypes
 from typing import List, Tuple
+import ctypesmath
 
 VERTICES = (
     -1.0,
@@ -32,6 +33,47 @@ void main()
     FragColor = vec4(1, 1, 1, 1);
 }
 '''
+
+
+class UniformMat4:
+    def __init__(self, name: str) -> None:
+        self.name = name
+        self.location = 0
+
+    def set(self, value: ctypesmath.Mat4) -> None:
+        glUniformMatrix4fv(self.location, 1, GL_FALSE, value.to_array())
+
+
+class Shader:
+    def __init__(self) -> None:
+        self.program = glCreateProgram()
+        self.matrix = UniformMat4('m')
+
+    def __del__(self) -> None:
+        glDeleteProgram(self.program)
+
+    def compile(self, vs_src: str, fs_src: str) -> None:
+        vs = load_shader(vs_src, GL_VERTEX_SHADER)
+        if not vs:
+            return
+        fs = load_shader(fs_src, GL_FRAGMENT_SHADER)
+        if not fs:
+            return
+        glAttachShader(self.program, vs)
+        glAttachShader(self.program, fs)
+        glLinkProgram(self.program)
+        error = glGetProgramiv(self.program, GL_LINK_STATUS)
+        glDeleteShader(vs)
+        glDeleteShader(fs)
+        if error != GL_TRUE:
+            info = glGetShaderInfoLog(self.program)
+            raise Exception(info)
+
+    def use(self):
+        glUseProgram(self.program)
+
+    def unuse(self):
+        glUseProgram(0)
 
 
 class VBO:
@@ -110,47 +152,6 @@ def load_shader(src: str, shader_type: int) -> int:
     return shader
 
 
-class UniformVariable:
-    def __init__(self, name: str):
-        self.name = name
-        self.location = 0
-
-    def set(self, value):
-        glUniformMatrix4fv(self.location, 1, GL_FALSE, value)
-
-
-class Shader:
-    def __init__(self) -> None:
-        self.program = glCreateProgram()
-        self.matrix = UniformVariable('m')
-
-    def __del__(self) -> None:
-        glDeleteProgram(self.program)
-
-    def compile(self, vs_src: str, fs_src: str) -> None:
-        vs = load_shader(vs_src, GL_VERTEX_SHADER)
-        if not vs:
-            return
-        fs = load_shader(fs_src, GL_FRAGMENT_SHADER)
-        if not fs:
-            return
-        glAttachShader(self.program, vs)
-        glAttachShader(self.program, fs)
-        glLinkProgram(self.program)
-        error = glGetProgramiv(self.program, GL_LINK_STATUS)
-        glDeleteShader(vs)
-        glDeleteShader(fs)
-        if error != GL_TRUE:
-            info = glGetShaderInfoLog(self.program)
-            raise Exception(info)
-
-    def use(self):
-        glUseProgram(self.program)
-
-    def unuse(self):
-        glUseProgram(0)
-
-
 class Model:
     def __init__(self) -> None:
         self.positions = VBO()
@@ -188,8 +189,7 @@ def create_triangle():
 class Renderer:
     def __init__(self):
         self.drawable_map: Dict[scenedescription.Mesh, Model] = {}
-        self.m = (ctypes.c_float * 16)(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0,
-                                       0, 0, 1)
+        self.m = ctypesmath.Mat4.identity()
 
     def get_drawable(self, mesh: scenedescription.Mesh) -> Model:
         d = self.drawable_map.get(mesh)
