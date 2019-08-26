@@ -17,9 +17,10 @@ VERTICES = (
 VS = '''
 #version 330
 in vec3 aPosition;
+uniform mediump mat4 m;
 void main ()
 {
-    gl_Position = vec4(aPosition, 1);
+    gl_Position = m * vec4(aPosition, 1);
 }
 '''
 
@@ -89,7 +90,7 @@ class IBO:
             raise Exception("not implemented")
         elif stride == 2:
             self.index_type = GL_UNSIGNED_SHORT
-        elif stride ==4:
+        elif stride == 4:
             self.index_type = GL_UNSIGNED_INT
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, len(data), data, GL_STATIC_DRAW)
 
@@ -109,9 +110,19 @@ def load_shader(src: str, shader_type: int) -> int:
     return shader
 
 
+class UniformVariable:
+    def __init__(self, name: str):
+        self.name = name
+        self.location = 0
+
+    def set(self, value):
+        glUniformMatrix4fv(self.location, 1, GL_FALSE, value)
+
+
 class Shader:
     def __init__(self) -> None:
         self.program = glCreateProgram()
+        self.matrix = UniformVariable('m')
 
     def __del__(self) -> None:
         glDeleteProgram(self.program)
@@ -153,8 +164,9 @@ class Model:
         self.indices = IBO()
         self.indices.set_indices(data, index_count)
 
-    def draw(self) -> None:
+    def draw(self, m) -> None:
         self.shader.use()
+        self.shader.matrix.set(m)
         if self.indices:
             self.positions.set_slot(0)
             self.indices.bind()
@@ -176,6 +188,8 @@ def create_triangle():
 class Renderer:
     def __init__(self):
         self.drawable_map: Dict[scenedescription.Mesh, Model] = {}
+        self.m = (ctypes.c_float * 16)(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0,
+                                       0, 0, 1)
 
     def get_drawable(self, mesh: scenedescription.Mesh) -> Model:
         d = self.drawable_map.get(mesh)
@@ -196,4 +210,4 @@ class Renderer:
         for g in scene.mesh_groups:
             for m in g.meshes:
                 d = self.get_drawable(m)
-                d.draw()
+                d.draw(self.m)
