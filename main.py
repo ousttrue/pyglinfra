@@ -32,18 +32,16 @@ class Orbit:
         self.matrix = ctypesmath.Mat4.new_identity()
         self.x = 0
         self.y = 0
-        self.z = 2
+        self.distance = 2
         self.yaw = 0
         self.pitch = 0
         self.update_matrix()
 
     def update_matrix(self) -> None:
-        t = ctypesmath.Mat4.new_translate(self.x, self.y, self.z)
-        r = ctypesmath.Mat4()
-        r.mul(ctypesmath.Mat4.new_rotate_y(self.yaw),
-              ctypesmath.Mat4.new_rotate_x(self.pitch))
-        # self.matrix.mul(self.translation, r)
-        self.matrix.mul(r, t)
+        t = ctypesmath.Mat4.new_translate(self.x, self.y, -self.distance)
+        yaw = ctypesmath.Mat4.new_rotate_y(self.yaw)
+        pitch = ctypesmath.Mat4.new_rotate_x(self.pitch)
+        self.matrix = yaw * pitch * t
 
 
 class Controller:
@@ -113,18 +111,19 @@ class Controller:
             self.view.update_matrix()
 
         if self.middle:
-            self.view.x += dx / self.height * self.view.z
-            self.view.y += dy / self.height * self.view.z
+            plane_height = math.tan(
+                self.projection.fov_y * 0.5) * self.view.distance * 2
+            self.view.x += dx / self.height * plane_height
+            self.view.y -= dy / self.height * plane_height
             self.view.update_matrix()
-
 
     def onWheel(self, d: int) -> None:
         ''' mouse input '''
         if d > 0:
-            self.view.z *= 0.9
+            self.view.distance *= 1.1
             self.view.update_matrix()
         elif d < 0:
-            self.view.z *= 1.1
+            self.view.distance *= 0.9
             self.view.update_matrix()
 
     def onKeyDown(self, keycode: int) -> None:

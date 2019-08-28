@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "main",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/main.py",
@@ -15,6 +15,13 @@
                 // "${env:GLTF_SAMPLE_MODELS}/2.0/Box/glTF-Binary/Box.glb"
             ],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "debug test",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tests/test_ctypemath.py",
+            "console": "integratedTerminal"
         }
-    ]
+     ]
 }
