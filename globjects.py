@@ -21,7 +21,7 @@ in vec3 aPosition;
 uniform mediump mat4 m;
 void main ()
 {
-    gl_Position = m * vec4(aPosition, 1);
+    gl_Position = vec4(aPosition, 1) * m;
 }
 '''
 
@@ -160,6 +160,7 @@ class Model:
         self.positions = VBO()
         self.indices: IBO = None
         self.shader = Shader()
+        self.m = ctypesmath.Mat4()
 
     def set_vertices(self, component_count: int, data: bytes) -> None:
         self.positions.set_vertex_attribute(component_count, data)
@@ -168,9 +169,11 @@ class Model:
         self.indices = IBO()
         self.indices.set_indices(data, index_count)
 
-    def draw(self, m) -> None:
+    def draw(self, projection, view) -> None:
+        self.m.mul(view, projection)
+        # print(view)
         self.shader.use()
-        self.shader.matrix.set(m)
+        self.shader.matrix.set(self.m)
         if self.indices:
             self.positions.set_slot(0)
             self.indices.bind()
@@ -192,7 +195,6 @@ def create_triangle():
 class Renderer:
     def __init__(self):
         self.drawable_map: Dict[scenedescription.Mesh, Model] = {}
-        self.m = ctypesmath.Mat4.identity()
 
     def get_drawable(self, mesh: scenedescription.Mesh) -> Model:
         d = self.drawable_map.get(mesh)
@@ -209,8 +211,8 @@ class Renderer:
             self.drawable_map[mesh] = d
         return d
 
-    def draw(self, scene: scenedescription.Scene) -> None:
+    def draw(self, scene: scenedescription.Scene, projection, view) -> None:
         for g in scene.mesh_groups:
             for m in g.meshes:
                 d = self.get_drawable(m)
-                d.draw(self.m)
+                d.draw(projection, view)

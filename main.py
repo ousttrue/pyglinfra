@@ -1,5 +1,6 @@
 import argparse
 import pathlib
+import math
 from OpenGL.GL import (glViewport, glClearColor, GL_COLOR_BUFFER_BIT,
                        GL_DEPTH_BUFFER_BIT, glClear, glFlush)
 
@@ -9,47 +10,119 @@ import gltf
 import scenedescription
 import globjects
 
+import ctypesmath
+
+
+class Perspective:
+    def __init__(self) -> None:
+        self.matrix = ctypesmath.Mat4.new_identity()
+        self.fov_y = math.pi * 30 / 180
+        self.aspect = 1
+        self.z_near = 0.1
+        self.z_far = 50
+        self.update_matrix()
+
+    def update_matrix(self) -> None:
+        self.matrix.perspective(self.fov_y, self.aspect, self.z_near,
+                                self.z_far)
+
+
+class Orbit:
+    def __init__(self) -> None:
+        self.matrix = ctypesmath.Mat4.new_identity()
+        self.translation = ctypesmath.Mat4.new_translate(0, 0, 1.0)
+        self.yaw = 0
+        self.pitch = 0
+        self.update_matrix()
+
+    def update_matrix(self) -> None:
+        r = ctypesmath.Mat4()
+        r.mul(ctypesmath.Mat4.new_rotate_y(self.yaw),
+              ctypesmath.Mat4.new_rotate_x(self.pitch))
+        # self.matrix.mul(self.translation, r)
+        self.matrix.mul(r, self.translation)
+
 
 class Controller:
     def __init__(self) -> None:
         self.scene = scenedescription.Scene()
         self.renderer = globjects.Renderer()
+        self.projection = Perspective()
+        self.view = Orbit()
+
+        self.x = 0
+        self.y = 0
+        self.left = False
+        self.middle = False
+        self.right = False
+
+        self.width = 600
+        self.height = 400
 
     def onResize(self, w: int, h: int) -> None:
         ''' when OpenGL window is resized. '''
         glViewport(0, 0, w, h)
+        self.width = w
+        self.height = h
+        self.projection.aspect = w / h
+        self.projection.update_matrix()
 
     def onLeftDown(self, x: int, y: int) -> None:
         ''' mouse input '''
-        pass
+        self.left = True
+        self.x = x
+        self.y = y
 
     def onLeftUp(self, x: int, y: int) -> None:
         ''' mouse input '''
-        pass
+        self.left = False
 
     def onMiddleDown(self, x: int, y: int) -> None:
         ''' mouse input '''
-        pass
+        self.middle = True
+        self.x = x
+        self.y = y
 
     def onMiddleUp(self, x: int, y: int) -> None:
         ''' mouse input '''
-        pass
+        self.middle = False
 
     def onRightDown(self, x: int, y: int) -> None:
         ''' mouse input '''
-        pass
+        self.right = True
+        self.x = x
+        self.y = y
 
     def onRightUp(self, x: int, y: int) -> None:
         ''' mouse input '''
-        pass
+        self.right = False
 
     def onMotion(self, x: int, y: int) -> None:
         ''' mouse input '''
-        pass
+        dx = x - self.x
+        self.x = x
+        dy = y - self.y
+        self.y = y
+
+        if self.right:
+            self.view.yaw += dx * 0.01
+            self.view.pitch += dy * 0.01
+            self.view.update_matrix()
+
+        if self.middle:
+            self.view.translation._41 += dx / self.height * self.view.translation._43
+            self.view.translation._42 += dy / self.height * self.view.translation._43
+            self.view.update_matrix()
+
 
     def onWheel(self, d: int) -> None:
         ''' mouse input '''
-        pass
+        if d > 0:
+            self.view.translation._43 *= 0.9
+            self.view.update_matrix()
+        elif d < 0:
+            self.view.translation._43 *= 1.1
+            self.view.update_matrix()
 
     def onKeyDown(self, keycode: int) -> None:
         ''' keyboard input'''
@@ -64,7 +137,8 @@ class Controller:
         glClearColor(0.0, 0.0, 1.0, 0.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        self.renderer.draw(self.scene)
+        self.renderer.draw(self.scene, self.projection.matrix,
+                           self.view.matrix)
 
         glFlush()
 

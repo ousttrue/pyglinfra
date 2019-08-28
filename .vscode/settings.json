@@ -3,6 +3,7 @@
         "Programiv",
         "TEXCOORD",
         "ctypes",
+        "ctypesmath",
         "glglue",
         "globjects",
         "gltftypes",
